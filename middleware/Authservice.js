@@ -8,6 +8,10 @@ export const ACCESS_COLUMNS = {
   routersqltest: "access_routersqltest",
 };
 
+export const STAFF_ROLES = ["admin", "staff"];
+export const READ_ROLES = ["admin", "staff", "production_client", "partner_client"];
+export const ROLES = ["admin", "staff", "production_client", "partner_client", "user"];
+
 export function generateToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
 }
@@ -69,4 +73,13 @@ export function requireAccess(resource) {
   };
 }
 
-export default { generateToken, verifyToken, requireRole, requireAccess, ACCESS_COLUMNS };
+export default {
+  generateToken,
+  verifyToken,
+  requireRole,
+  requireAccess,
+  ACCESS_COLUMNS,
+  STAFF_ROLES,
+  READ_ROLES,
+  ROLES,
+};

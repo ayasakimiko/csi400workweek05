@@ -1,14 +1,17 @@
 import express from "express";
 import db from "../database/sqlconnect.js";
-import { verifyToken, requireRole } from "../middleware/Authservice.js";
-import { READ_ROLES } from "./routerAssets.js";
+import { verifyToken, requireRole, READ_ROLES } from "../middleware/Authservice.js";
 
 const router = express.Router();
 const promiseDb = db.promise();
 
-router.use(verifyToken, requireRole(...READ_ROLES));
+const REPORT_ROLES = READ_ROLES.filter((role) => role !== "staff");
+const SUMMARY_ROLES = REPORT_ROLES.filter((role) => role !== "partner_client");
+const OWNERSHIP_ROLES = READ_ROLES;
 
-router.get("/assets/summary", async (req, res) => {
+router.use(verifyToken);
+
+router.get("/assets/summary", requireRole(...SUMMARY_ROLES), async (req, res) => {
   try {
     const [[{ totalAssets }]] = await promiseDb.query(
       "SELECT COUNT(*) AS totalAssets FROM Asset",
@@ -38,7 +41,7 @@ router.get("/assets/summary", async (req, res) => {
   }
 });
 
-router.get("/assets/high-value", async (req, res) => {
+router.get("/assets/high-value", requireRole(...READ_ROLES), async (req, res) => {
   const minValue = Number(req.query.minValue);
 
   if (req.query.minValue === undefined || Number.isNaN(minValue)) {
@@ -61,7 +64,7 @@ router.get("/assets/high-value", async (req, res) => {
   }
 });
 
-router.get("/ownership", async (req, res) => {
+router.get("/ownership", requireRole(...OWNERSHIP_ROLES), async (req, res) => {
   const { assetType } = req.query;
 
   if (!assetType) {

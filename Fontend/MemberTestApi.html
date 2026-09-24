@@ -28,6 +28,14 @@
       <input id="regEmail" placeholder="somsri@example.com">
       <label>Password</label>
       <input id="regPassword" type="password" placeholder="password">
+      <label>Role</label>
+      <select id="regRole">
+        <option value="user">user</option>
+        <option value="staff">staff</option>
+        <option value="production_client">production_client</option>
+        <option value="partner_client">partner_client</option>
+        <option value="admin">admin</option>
+      </select>
       <button onclick="register()">Register</button>
     </div>
 
@@ -230,6 +238,7 @@ async function register() {
     name: val('regName'),
     email: val('regEmail'),
     password: val('regPassword'),
+    role: val('regRole'),
   });
 }
 

@@ -43,7 +43,6 @@ app.use('/api/customers', customersRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api', mongoRouter);
 
-// CORS ปฏิเสธ Origin ที่ไม่อนุญาต -> ตอบ 403 แบบ JSON แทน default HTML error ของ Express
 app.use((err, req, res, next) => {
   if (err && err.message && err.message.startsWith('CORS:')) {
     return res.status(403).json({ message: err.message });

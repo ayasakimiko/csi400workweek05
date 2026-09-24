@@ -1,11 +1,8 @@
 import express from "express";
 import db from "../database/sqlconnect.js";
-import { verifyToken, requireRole } from "../middleware/Authservice.js";
+import { verifyToken, requireRole, STAFF_ROLES, READ_ROLES } from "../middleware/Authservice.js";
 
 const router = express.Router();
-
-const STAFF_ROLES = ["admin", "staff"];
-const READ_ROLES = ["admin", "staff", "production_client", "partner_client"];
 
 const ASSET_SELECT = `
   SELECT a.id, a.asset_type, a.description, a.value, a.status,

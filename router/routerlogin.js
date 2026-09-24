@@ -1,18 +1,24 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import db from "../database/sqlconnect.js";
-import { generateToken, verifyToken } from "../middleware/Authservice.js";
+import { generateToken, verifyToken, ROLES } from "../middleware/Authservice.js";
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
 // 1. Register - สมัครสมาชิก
 router.post("/register", (req, res) => {
-  const { name, password, email } = req.body;
+  const { name, password, email, role } = req.body;
 
   if (!name || !password || !email) {
     return res.status(400).json({ message: "name, password, email are required" });
   }
+
+  if (role !== undefined && !ROLES.includes(role)) {
+    return res.status(400).json({ message: `role must be one of: ${ROLES.join(", ")}` });
+  }
+
+  const finalRole = role || "user";
 
   db.query("SELECT id FROM User WHERE email = ?", [email], (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
@@ -23,10 +29,10 @@ router.post("/register", (req, res) => {
     bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
       if (err) return res.status(500).json({ message: err.message });
 
-      const sql = "INSERT INTO User (name, password, email, Role) VALUES (?, ?, ?, 'user')";
-      db.query(sql, [name, hash, email], (err, result) => {
+      const sql = "INSERT INTO User (name, password, email, Role) VALUES (?, ?, ?, ?)";
+      db.query(sql, [name, hash, email, finalRole], (err, result) => {
         if (err) return res.status(500).json({ message: err.message });
-        res.status(201).json({ id: result.insertId, name, email, role: "user" });
+        res.status(201).json({ id: result.insertId, name, email, role: finalRole });
       });
     });
   });
