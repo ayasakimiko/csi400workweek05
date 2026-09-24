@@ -12,14 +12,27 @@ export function generateToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
 }
 
+const usedTokens = new Set();
+
 export function verifyToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) return res.status(401).json({ message: "No token provided" });
 
+  if (usedTokens.has(token)) {
+    return res.status(403).json({ message: "Token already used, please login again" });
+  }
+
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ message: "Invalid or expired token" });
+
+    usedTokens.add(token);
+    if (decoded.exp) {
+      const ttlMs = decoded.exp * 1000 - Date.now();
+      setTimeout(() => usedTokens.delete(token), Math.max(ttlMs, 0)).unref();
+    }
+
     req.user = decoded;
     next();
   });

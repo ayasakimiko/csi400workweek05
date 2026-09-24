@@ -54,9 +54,24 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }
 
-async function tryFetch(path, options, label) {
+function isValidApiBase(base) {
+  if (!base) return false;
   try {
-    const res = await fetch(apiBase() + path, options);
+    const u = new URL(base);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+async function tryFetch(path, options, label) {
+  const base = apiBase();
+  if (!isValidApiBase(base)) {
+    log('blocked', `${label} -> API Base URL ไม่ถูกต้อง`, `"${base}" ไม่ใช่ URL ที่ใช้ได้ ต้องขึ้นต้นด้วย http:// หรือ https:// เช่น http://localhost:3000`);
+    return;
+  }
+  try {
+    const res = await fetch(base + path, options);
     const data = await res.json().catch(() => ({}));
     log('leak', `${label} -> HTTP ${res.status} (origin ผ่าน CORS! ตรวจสอบ whitelist ใหม่)`, JSON.stringify(data, null, 2));
   } catch (err) {
@@ -71,9 +86,13 @@ function attack() {
 
 function attackWithToken() {
   const token = document.getElementById('stolenToken').value;
+  if (!token) {
+    log('blocked', 'GET /api/assets (แนบ stolen token)', 'ยังไม่ได้แนบ token เลยนะ ใส่ token ในช่อง "JWT token ที่ขโมยมา" ก่อนแล้วค่อยกดปุ่มนี้');
+    return;
+  }
   tryFetch('/api/assets', {
     method: 'GET',
-    headers: token ? { Authorization: 'Bearer ' + token } : {},
+    headers: { Authorization: 'Bearer ' + token },
   }, 'GET /api/assets (แนบ stolen token)');
 }
 

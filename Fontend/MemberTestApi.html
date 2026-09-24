@@ -39,12 +39,7 @@
       <input id="loginPassword" type="password" value="999999a">
       <button onclick="login()">Login</button>
       <button class="secondary" onclick="logout()">Logout</button>
-      <p style="font-size:11px;color:#64748b;margin-top:8px">
-        บัญชี seed เริ่มต้น (role admin) เข้าถึงได้ทุก endpoint อยู่แล้ว
-        ถ้า register ผู้ใช้ใหม่จะได้ role "user" (default) ซึ่งยังเรียก
-        /api/assets ไม่ได้ ต้องให้ admin ไป PUT /api/admin/users/:id/role
-        เปลี่ยนเป็น staff / production_client / partner_client ก่อน
-      </p>
+      <button class="secondary" onclick="manualRefreshToken()">สร้าง Token ใหม่</button>
     </div>
 
     <div class="card">
@@ -130,6 +125,7 @@
 <script>
 let token = null;
 let currentUser = null;
+let lastCreds = null;
 
 function val(id) {
   return document.getElementById(id).value;
@@ -174,7 +170,8 @@ function escapeHtml(str) {
 
 async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const usingToken = Boolean(token);
+  if (usingToken) headers['Authorization'] = 'Bearer ' + token;
 
   try {
     const res = await fetch(apiBase() + path, {
@@ -184,10 +181,43 @@ async function request(method, path, body) {
     });
     const data = await res.json().catch(() => ({}));
     log(method, path, res.status, data);
+
+    if (usingToken && path !== '/api/auth/login') await refreshToken();
+
     return data;
   } catch (err) {
     log(method, path, 0, 'Request ถูกบล็อก (network/CORS error): ' + err.message);
     return null;
+  }
+}
+
+async function refreshToken() {
+  if (!lastCreds) return;
+  try {
+    const res = await fetch(apiBase() + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lastCreds),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.token) {
+      token = data.token;
+      currentUser = data.user;
+      renderSession();
+    }
+  } catch (err) {
+    // เงียบไว้ ไม่รบกวน log หลัก
+  }
+}
+
+async function manualRefreshToken() {
+  const creds = lastCreds || { email: val('loginEmail'), password: val('loginPassword') };
+  const data = await request('POST', '/api/auth/login', creds);
+  if (data && data.token) {
+    token = data.token;
+    currentUser = data.user;
+    lastCreds = creds;
+    renderSession();
   }
 }
 
@@ -211,6 +241,7 @@ async function login() {
   if (data && data.token) {
     token = data.token;
     currentUser = data.user;
+    lastCreds = { email: val('loginEmail'), password: val('loginPassword') };
   }
   renderSession();
 }
@@ -218,6 +249,7 @@ async function login() {
 function logout() {
   token = null;
   currentUser = null;
+  lastCreds = null;
   renderSession();
 }
 
