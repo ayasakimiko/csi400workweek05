@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Hacker Test - Unauthorized Origin</title>
+<link rel="stylesheet" href="HackerTestApi.css">
+</head>
+<body>
+
+<header>
+  <h1>🕵 Hacker Client (Unauthorized Origin)</h1>
+  <p>จำลองเว็บของผู้ไม่หวังดีที่พยายามดึงข้อมูล Private API จาก origin ที่ไม่ได้รับอนุญาต</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>วิธีทดสอบให้ origin นี้ "ไม่ได้รับอนุญาต" จริง ๆ</h2>
+    <p class="hint">
+      ห้ามเปิดไฟล์นี้ผ่าน Live Server พอร์ต 5500 (นั่นคือ origin ที่อนุญาต ผลจะกลายเป็น "ผ่าน CORS" ไปแทน)<br>
+      ให้เปิดด้วยวิธีใดวิธีหนึ่งต่อไปนี้แทน:<br>
+      1) ดับเบิลคลิกไฟล์นี้เพื่อเปิดตรง ๆ ผ่าน file:// (browser จะส่ง Origin: null)<br>
+      2) หรือรันเสิร์ฟไฟล์นี้ที่พอร์ตอื่น เช่น <code>npx serve . -l 5501</code> แล้วเปิด http://localhost:5501/HackerTestApi.html<br>
+      ทั้งสองแบบไม่อยู่ใน whitelist (http://localhost:5500, https://api.banka.com, https://api.bankb.com) จึงต้องโดน CORS บล็อก
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Target</h2>
+    <label>API Base URL ของเหยื่อ</label>
+    <input id="apiBase" value="http://localhost:3000">
+
+    <label>JWT token ที่ขโมยมา (ทดสอบว่า origin ผิด ต่อให้มี token จริงก็ยังใช้ไม่ได้)</label>
+    <input id="stolenToken" placeholder="วาง token จาก MemberTestApi.html มาแปะที่นี่ก็ได้ (ทดสอบ)">
+
+    <button onclick="attack()">ยิงขโมยข้อมูลทรัพย์สินทั้งหมด (GET /api/assets)</button>
+    <button onclick="attackWithToken()">ยิงพร้อมแนบ token</button>
+    <button onclick="attackLogin()">ลองสุ่ม login ด้วย admin</button>
+  </div>
+
+  <div class="card">
+    <h2>Attack Log</h2>
+    <div id="log"></div>
+  </div>
+</main>
+
+<script>
+function apiBase() {
+  return document.getElementById('apiBase').value.replace(/\/$/, '');
+}
+
+function log(kind, title, detail) {
+  const el = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'entry ' + kind;
+  const time = new Date().toLocaleTimeString();
+  entry.innerHTML = `<div class="meta">[${time}] ${title}</div><div>${escapeHtml(detail)}</div>`;
+  el.prepend(entry);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+async function tryFetch(path, options, label) {
+  try {
+    const res = await fetch(apiBase() + path, options);
+    const data = await res.json().catch(() => ({}));
+    log('leak', `${label} -> HTTP ${res.status} (origin ผ่าน CORS! ตรวจสอบ whitelist ใหม่)`, JSON.stringify(data, null, 2));
+  } catch (err) {
+    log('blocked', `${label} -> ถูก CORS บล็อก ✅`, 'browser ปฏิเสธไม่ให้อ่าน response: ' + err.message +
+      '\n(เปิด DevTools > Console จะเห็น "No \'Access-Control-Allow-Origin\' header" ชัดเจนกว่านี้)');
+  }
+}
+
+function attack() {
+  tryFetch('/api/assets', { method: 'GET' }, 'GET /api/assets (ไม่มี token)');
+}
+
+function attackWithToken() {
+  const token = document.getElementById('stolenToken').value;
+  tryFetch('/api/assets', {
+    method: 'GET',
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
+  }, 'GET /api/assets (แนบ stolen token)');
+}
+
+function attackLogin() {
+  tryFetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'tset@gmail.com', password: '999999a' }),
+  }, 'POST /api/auth/login (สุ่มรหัสผ่าน)');
+}
+</script>
+
+</body>
+</html>

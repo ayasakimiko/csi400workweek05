@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Member Test - Asset Ownership API</title>
+<link rel="stylesheet" href="MemberTestApi.css">
+</head>
+<body>
+
+<header>
+  <h1>Member Client (Allowed Origin)</h1>
+  <p>ต้องเปิดหน้านี้จาก origin ที่อนุญาต เช่น http://localhost:5500 (VS Code Live Server ค่า default คือ port 5500)</p>
+</header>
+
+<main>
+  <div>
+    <div class="card">
+      <h2>API Config</h2>
+      <label>API Base URL</label>
+      <input id="apiBase" value="http://localhost:3000">
+    </div>
+
+    <div class="card">
+      <h2>Register</h2>
+      <label>Name</label>
+      <input id="regName" placeholder="Somsri Member">
+      <label>Email</label>
+      <input id="regEmail" placeholder="somsri@example.com">
+      <label>Password</label>
+      <input id="regPassword" type="password" placeholder="password">
+      <button onclick="register()">Register</button>
+    </div>
+
+    <div class="card">
+      <h2>Login</h2>
+      <label>Email</label>
+      <input id="loginEmail" value="tset@gmail.com">
+      <label>Password</label>
+      <input id="loginPassword" type="password" value="999999a">
+      <button onclick="login()">Login</button>
+      <button class="secondary" onclick="logout()">Logout</button>
+      <p style="font-size:11px;color:#64748b;margin-top:8px">
+        บัญชี seed เริ่มต้น (role admin) เข้าถึงได้ทุก endpoint อยู่แล้ว
+        ถ้า register ผู้ใช้ใหม่จะได้ role "user" (default) ซึ่งยังเรียก
+        /api/assets ไม่ได้ ต้องให้ admin ไป PUT /api/admin/users/:id/role
+        เปลี่ยนเป็น staff / production_client / partner_client ก่อน
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Session</h2>
+      <div id="sessionBox" class="session-box empty">
+        ยังไม่ได้ login
+        <div class="role-badge" id="roleBadge">no token</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Asset Ownership API</h2>
+      <div class="actions-grid">
+
+        <div class="action-group full">
+          <h3>1. Production Management (staff/admin)</h3>
+          <label>asset_type</label>
+          <input id="pmType" value="Land">
+          <label>description</label>
+          <input id="pmDesc" value="ทดสอบเพิ่มทรัพย์สิน">
+          <label>value</label>
+          <input id="pmValue" value="1000000">
+          <label>status</label>
+          <input id="pmStatus" value="Owned">
+          <label>owner_id (User id)</label>
+          <input id="pmOwner" value="2">
+          <button onclick="createAsset()">POST /api/assets</button>
+          <label>id สำหรับแก้ไข</label>
+          <input id="pmEditId" value="1">
+          <button onclick="updateAsset()">PUT /api/assets/:id</button>
+        </div>
+
+        <div class="action-group">
+          <h3>2. Inquiry</h3>
+          <button class="full" onclick="call('GET', '/api/assets')">GET /api/assets</button>
+          <label>id</label>
+          <input id="inqId" value="1">
+          <button onclick="call('GET', '/api/assets/' + val('inqId'))">GET /api/assets/:id</button>
+        </div>
+
+        <div class="action-group">
+          <h3>Customers</h3>
+          <label>customer (user) id</label>
+          <input id="custId" value="2">
+          <button onclick="call('GET', '/api/customers/' + val('custId') + '/assets')">GET /api/customers/:id/assets</button>
+          <button class="secondary" onclick="call('GET', '/api/customers/assets')">GET /api/customers/assets</button>
+        </div>
+
+        <div class="action-group">
+          <h3>3. Summary Report</h3>
+          <button class="full" onclick="call('GET', '/api/reports/assets/summary')">GET /api/reports/assets/summary</button>
+        </div>
+
+        <div class="action-group">
+          <h3>4. High-Value Report</h3>
+          <label>minValue</label>
+          <input id="minValue" value="10000000">
+          <button onclick="call('GET', '/api/reports/assets/high-value?minValue=' + val('minValue'))">GET high-value</button>
+        </div>
+
+        <div class="action-group full">
+          <h3>5. Asset Type Ownership Report</h3>
+          <label>assetType</label>
+          <input id="assetType" value="Factory">
+          <button onclick="call('GET', '/api/reports/ownership?assetType=' + val('assetType'))">GET ownership</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Request Log</h2>
+        <button class="secondary" onclick="clearLog()">Refresh Log</button>
+      </div>
+      <div id="log"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let token = null;
+let currentUser = null;
+
+function val(id) {
+  return document.getElementById(id).value;
+}
+
+function apiBase() {
+  return val('apiBase').replace(/\/$/, '');
+}
+
+function renderSession() {
+  const box = document.getElementById('sessionBox');
+  const badge = document.getElementById('roleBadge');
+  if (!token) {
+    box.classList.add('empty');
+    box.firstChild.textContent = 'ยังไม่ได้ login';
+    badge.textContent = 'no token';
+    return;
+  }
+  box.classList.remove('empty');
+  box.firstChild.textContent = `${currentUser.email} — token: ${token.slice(0, 24)}...`;
+  badge.textContent = currentUser.role;
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+function log(method, path, status, body) {
+  const el = document.getElementById('log');
+  const entry = document.createElement('div');
+  const ok = status >= 200 && status < 300;
+  entry.className = 'entry ' + (status === 0 ? 'fail' : ok ? 'ok' : 'fail');
+  const time = new Date().toLocaleTimeString();
+  entry.innerHTML = `<div class="meta">[${time}] ${method} ${path} -> ${status || 'BLOCKED'}</div>` +
+    `<div>${escapeHtml(typeof body === 'string' ? body : JSON.stringify(body, null, 2))}</div>`;
+  el.prepend(entry);
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+async function request(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  try {
+    const res = await fetch(apiBase() + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    log(method, path, res.status, data);
+    return data;
+  } catch (err) {
+    log(method, path, 0, 'Request ถูกบล็อก (network/CORS error): ' + err.message);
+    return null;
+  }
+}
+
+function call(method, path) {
+  return request(method, path);
+}
+
+async function register() {
+  await request('POST', '/api/auth/register', {
+    name: val('regName'),
+    email: val('regEmail'),
+    password: val('regPassword'),
+  });
+}
+
+async function login() {
+  const data = await request('POST', '/api/auth/login', {
+    email: val('loginEmail'),
+    password: val('loginPassword'),
+  });
+  if (data && data.token) {
+    token = data.token;
+    currentUser = data.user;
+  }
+  renderSession();
+}
+
+function logout() {
+  token = null;
+  currentUser = null;
+  renderSession();
+}
+
+async function createAsset() {
+  await request('POST', '/api/assets', {
+    asset_type: val('pmType'),
+    description: val('pmDesc'),
+    value: Number(val('pmValue')),
+    status: val('pmStatus'),
+    owner_id: Number(val('pmOwner')),
+  });
+}
+
+async function updateAsset() {
+  await request('PUT', '/api/assets/' + val('pmEditId'), {
+    asset_type: val('pmType'),
+    description: val('pmDesc'),
+    value: Number(val('pmValue')),
+    status: val('pmStatus'),
+    owner_id: Number(val('pmOwner')),
+  });
+}
+
+renderSession();
+</script>
+
+</body>
+</html>

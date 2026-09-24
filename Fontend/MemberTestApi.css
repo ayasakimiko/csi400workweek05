@@ -1,0 +1,190 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+header {
+  background: #1d4ed8;
+  color: #fff;
+  padding: 20px 24px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+header p {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+main {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 16px 40px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-header h2 {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.card-header button {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #1d4ed8;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: #475569;
+  margin: 10px 0 4px;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #1d4ed8;
+  color: #fff;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: #1e40af;
+}
+
+button.secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+button.secondary:hover {
+  background: #cbd5e1;
+}
+
+.session-box {
+  font-size: 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 10px;
+  word-break: break-all;
+}
+
+.session-box .role-badge {
+  display: inline-block;
+  margin-top: 6px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.session-box.empty .role-badge {
+  background: #94a3b8;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.actions-grid .full {
+  grid-column: 1 / -1;
+}
+
+.action-group {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.action-group h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #334155;
+}
+
+#log {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.entry {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.entry .meta {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.entry.ok .meta { color: #4ade80; }
+.entry.fail .meta { color: #f87171; }
+.entry.pending .meta { color: #facc15; }
